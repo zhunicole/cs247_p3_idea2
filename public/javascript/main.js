@@ -85,21 +85,16 @@
                 console.log(key);
                 console.log(child[key]);
                 video = child[key];
-
                 break;
               }
               
               fb_instance_stream.push({m:username+": " +input, v: video.v, c: my_color});
             } else {
-              //add it
               var hashtag_video = fb_instance_videos.child(hashtag);
-
               hashtag_video.push({v: cur_video_blob});
               fb_instance_stream.push({m:username+": " +input, v:cur_video_blob, c: my_color});
             }
           });
-
-
 
         }else{
           fb_instance_stream.push({m:username+": " +$(this).val(), c: my_color});

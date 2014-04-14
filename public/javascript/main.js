@@ -11,9 +11,21 @@
     connect_webcam();
   });
 
+  function find_hashtag(message){
+    var startVal = message.indexOf("#");
+    var endVal = message.indexOf(" ", startVal);
+    var hashtag = "";
+    if(endVal === -1){
+      hashtag = message.substr(startVal + 1); //firebase whines if you input a hashtag
+    } else {
+      hashtag = message.substring(startVal + 1, endVal);
+    }
+    return hashtag;
+  }
+
   function connect_to_chat_firebase(){
     /* Include your Firebase link here!*/
-    fb_instance = new Firebase("https://sweltering-fire-2098.firebaseio.com/");
+    fb_instance = new Firebase("https://hashtagselfie.firebaseio.com/");
 
     // generate new chatroom id or use existing id
     var url_segments = document.location.href.split("/#");
@@ -28,6 +40,11 @@
     var fb_new_chat_room = fb_instance.child('chatrooms').child(fb_chat_room_id);
     var fb_instance_users = fb_new_chat_room.child('users');
     var fb_instance_stream = fb_new_chat_room.child('stream');
+    var fb_instance_videos = fb_new_chat_room.child('videos');
+    //init videos
+    var init_video = fb_instance_videos.child("init_instance_stream");
+    init_video.push({v: "video"});
+
     var my_color = "#"+((1<<24)*Math.random()|0).toString(16);
 
     // listen to events
@@ -37,6 +54,11 @@
     fb_instance_stream.on("child_added",function(snapshot){
       display_msg(snapshot.val());
     });
+    // fb_instance_videos.on("child_added",function(snapshot){
+    //   display_msg(snapshot.val());
+    // });
+
+
 
     // block until username is answered
     var username = window.prompt("Welcome, warrior! please declare your name?");
@@ -49,8 +71,36 @@
     // bind submission box
     $("#submission input").keydown(function( event ) {
       if (event.which == 13) {
-        if(has_emotions($(this).val())){
-          fb_instance_stream.push({m:username+": " +$(this).val(), v:cur_video_blob, c: my_color});
+        var input = $(this).val();
+        if(input.indexOf("#") != -1){
+          hashtag = find_hashtag(input);
+          //DATABASE CALLBACK
+          fb_instance_videos.once('value', function(snapshot){
+            if(snapshot.hasChild(hashtag)){
+              // alert("insert hashtagged video here");
+              var child = snapshot.child(hashtag).exportVal();
+
+              var video;
+              for(var key in child){
+                console.log(key);
+                console.log(child[key]);
+                video = child[key];
+
+                break;
+              }
+              
+              fb_instance_stream.push({m:username+": " +input, v: video.v, c: my_color});
+            } else {
+              //add it
+              var hashtag_video = fb_instance_videos.child(hashtag);
+
+              hashtag_video.push({v: cur_video_blob});
+              fb_instance_stream.push({m:username+": " +input, v:cur_video_blob, c: my_color});
+            }
+          });
+
+
+
         }else{
           fb_instance_stream.push({m:username+": " +$(this).val(), c: my_color});
         }
